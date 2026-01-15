@@ -56,7 +56,7 @@ Esta arquitectura está diseñada para resolver la ingestión y consulta de manu
 
 Para un análisis detallado y presentación ejecutiva:
 
-*   📄 **[Documentación Técnica Completa (PDF)](./documentacion.pdf)**: Explicación profunda de cada componente y flujos alternativos.
+*   📄 **[Documentación Técnica Completa (PDF)](./documentacion_rag.pdf)**: Explicación profunda de cada componente y flujos alternativos.
 *   📊 **[Presentación Ejecutiva (PPTX)](./assets/presentacion.pptx)**: Slides para stakeholders no técnicos.
 *   🖼️ **[Diagrama Fuente (SVG)](./assets/diagrama_rag.svg)**: Archivo editable en alta resolución.
 
