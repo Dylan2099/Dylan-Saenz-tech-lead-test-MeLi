@@ -174,6 +174,7 @@ with st.sidebar:
                         "date": "Fecha"
                     }
                 )
+                st.caption("Nota: El ranking se calcula basado en la precisión semántica de las respuestas y la dificultad acumulada.")
         except:
             st.warning("API Offline")
 

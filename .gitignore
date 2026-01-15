@@ -12,10 +12,9 @@ env/
 # Base de datos local 
 *.db
 *.sqlite
-ejercicio_2/data/*
 data/trivia_game.db  
 
-data/*.db
+# Mantener el archivo de base de datos vacío
 !data/.gitkeep
 
 # Logs
