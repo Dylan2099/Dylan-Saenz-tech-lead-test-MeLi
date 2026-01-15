@@ -26,7 +26,7 @@ def load_lottieurl(url: str):
 lottie_bot = load_lottieurl(LOTTIE_ROBOT)
 lottie_win = load_lottieurl(LOTTIE_WIN)
 
-# --- CSS INJECTION (EL JUICE VISUAL) ---
+# --- CSS INJECTION (JUICE VISUAL) ---
 # Fondo animado, fuentes modernas y eliminación de elementos nativos feos
 page_bg_css = """
 <style>
@@ -133,7 +133,7 @@ def submit_answer(answer):
 # Header con Logo (Texto estilizado)
 col_h1, col_h2 = st.columns([1, 4])
 with col_h1:
-    # CORRECCIÓN DE SEGURIDAD: Solo renderiza si lottie_bot existe
+    # SEGURIDAD: Solo renderiza si lottie_bot existe
     if lottie_bot:
         st_lottie(lottie_bot, height=80, key="header_anim")
     else:
@@ -163,7 +163,7 @@ with st.sidebar:
 
 # --- PANTALLA 1: LOBBY (Selección de Tema) ---
 if not st.session_state.session_id:
-    st.markdown("### 👋 ¡Bienvenido, Aspirante a Tech Lead!")
+    st.markdown("### 👋 ¡Bienvenido, Joven Aprendiz!")
     st.markdown("Elige tu desafío para demostrar tu conocimiento.")
     
     name = st.text_input("Ingresa tu Nickname:", placeholder="Ej: CloudMaster99")

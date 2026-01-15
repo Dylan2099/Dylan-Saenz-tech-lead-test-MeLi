@@ -23,8 +23,8 @@ class ChatRequest(BaseModel):
     user_answer: Optional[str] = None # Puede ser None si es el primer turno
 
 class GameStateResponse(BaseModel):
-    message: str            # Texto a mostrar en Unity (Pregunta o Feedback)
-    is_question: bool       # Para que Unity sepa si mostrar input de texto
+    message: str            # Texto a mostrar (Pregunta o Feedback)
+    is_question: bool       
     game_over: bool
     score: int
     session_id: int
@@ -67,8 +67,22 @@ def start_game(request: StartGameRequest):
     )
 
 @app_api.post("/submit_answer", response_model=GameStateResponse)
-def submit_answer(request: ChatRequest):
-    """Recibe la respuesta del usuario, evalúa y (si no termina) genera la siguiente pregunta."""
+def submit_answer(request: ChatRequest) -> GameStateResponse:
+    """
+    Procesa la respuesta del usuario y avanza el turno del juego.
+
+    Este endpoint actúa como el 'Human-in-the-loop' del sistema:
+    1. Inyecta la respuesta del usuario en el grafo pausado.
+    2. Reanuda la ejecución para que el agente 'Juez' evalúe.
+    3. Si el juego no termina, el agente 'QuizMaster' genera la siguiente pregunta.
+
+    Args:
+        request (ChatRequest): Contiene el session_id y la respuesta del usuario.
+
+    Returns:
+        GameStateResponse: El nuevo estado del juego, incluyendo feedback y
+                           la siguiente pregunta (si aplica).
+    """
     
     thread_config = {"configurable": {"thread_id": str(request.session_id)}}
     
@@ -80,11 +94,7 @@ def submit_answer(request: ChatRequest):
     # O hasta terminar si es Game Over.
     output = app.invoke(None, config=thread_config)
     
-    # 3. Construir respuesta para Unity
-    # Aquí hay un truco: LangGraph corrió "Evaluar" Y "Generar Siguiente".
-    # Unity necesita ver primero el Feedback y luego la Pregunta.
-    # Para simplificar, enviaremos el Feedback + La Siguiente Pregunta juntos,
-    # o Unity tendrá que parsearlo.
+    # 3. Construir respuesta 
     
     if output["game_over"]:
         return GameStateResponse(
@@ -107,7 +117,7 @@ def submit_answer(request: ChatRequest):
 
 @app_api.get("/leaderboard", response_model=List[LeaderboardEntry])
 def leaderboard():
-    """Devuelve el Top 5 para mostrar en Unity."""
+    """Devuelve el Top 5"""
     results = get_leaderboard()
     return [
         LeaderboardEntry(
@@ -117,4 +127,4 @@ def leaderboard():
         ) for row in results
     ]
 
-# Para correr: uvicorn src.api:app_api --reload
+# Para correr usar comando: uvicorn src.api:app_api --reload

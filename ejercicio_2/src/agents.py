@@ -13,7 +13,7 @@ from src.models import engine, QuestionLog, update_session_score
 # --- 1. Configuración del LLM ---
 llm = ChatVertexAI(
     model_name=settings.MODEL_NAME,
-    temperature=0.8, # Subimos un poco la temperatura para más variedad
+    temperature=0.8, # temperatura alta para más variedad
     project=settings.PROJECT_ID,
     location=settings.REGION
 )
@@ -32,9 +32,24 @@ class EvaluationSchema(BaseModel):
 
 def generate_question_node(state: TriviaState):
     """Agente 1: Genera una pregunta con personalidad y MEMORIA."""
+
+    """
+    Nodo Generador (QuizMaster): Crea una nueva pregunta de trivia utilizando un LLM.
+
+    Este nodo consulta el historial de mensajes en el estado para evitar repetir
+    preguntas anteriores e inyecta contexto específico si el tema es 'MeLi Expert'.
+
+    Args:
+        state (TriviaState): El estado actual del grafo, incluyendo el tema y el historial.
+
+    Returns:
+        dict: Un diccionario con la actualización parcial del estado:
+              - current_question: La nueva pregunta generada.
+              - current_answer: La respuesta correcta (oculta al usuario).
+              - messages: El mensaje del Host añadido al historial.
+    """
     topic = state.get("topic", "General")
     
-    # --- FIX REPETICIÓN: Extraer preguntas anteriores del historial ---
     # Buscamos en los mensajes previos textos que empiecen con "🤖 Host:"
     previous_questions = [
         msg.replace("🤖 Host: ", "") 
@@ -83,7 +98,21 @@ def generate_question_node(state: TriviaState):
     }
 
 def evaluate_answer_node(state: TriviaState):
-    """Agente 2: Evalúa la respuesta."""
+    """Agente 2: Evalúa la respuesta.
+
+    Nodo Juez: Evalúa la respuesta del usuario frente a la respuesta correcta.
+
+    Realiza tres acciones principales:
+    1. Utiliza el LLM para una evaluación semántica (no estricta por texto exacto).
+    2. Persiste el resultado detallado en la base de datos (Audit Log).
+    3. Calcula si el juego debe terminar basado en MAX_QUESTIONS.
+
+    Args:
+        state (TriviaState): Estado conteniendo la respuesta del usuario y la correcta.
+
+    Returns:
+        dict: Actualización del estado con puntaje, feedback y flag de game_over.
+    """
     user_input = state["user_answer"]
     correct_ans = state["current_answer"]
     question = state["current_question"]

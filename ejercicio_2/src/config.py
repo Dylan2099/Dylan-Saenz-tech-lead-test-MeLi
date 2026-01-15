@@ -12,7 +12,7 @@ DATA_DIR.mkdir(exist_ok=True)
 class Settings(BaseSettings):
     PROJECT_ID: str
     REGION: str = "us-central1"
-    MODEL_NAME: str = "gemini-1.5-flash-001" 
+    MODEL_NAME: str = "gemini-2.5-flash" #modelo rapido y barato ideal para juego
     MAX_QUESTIONS: int = 3
     TRIVIA_TOPIC: str = "Google Cloud Platform"
     

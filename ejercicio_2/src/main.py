@@ -14,7 +14,7 @@ def run_game():
     init_db()
     console.print(Panel(f"🚀 Iniciando Trivia Tech Lead\nTema: {settings.TRIVIA_TOPIC}", style="bold blue"))
     
-    # --- PASO 0: Registro de Jugador (Requisito Multi-participante) ---
+    # --- PASO 0: Registro de Jugador ( Multi-participante) ---
     player_name = console.input("\n[bold green]Ingresa tu nombre para el Ranking > [/bold green]")
     session_id = create_session(player_name)
     
@@ -61,7 +61,7 @@ def run_game():
         if result.get("game_over"):
             break
 
-    # --- REPORTE FINAL Y RANKING (Requisito 6) ---
+    # --- REPORTE FINAL Y RANKING ---
     final_score = app.get_state(thread_config).values.get('score', 0)
     console.print(Panel(f"🏆 Juego Terminado, {player_name}!\nPuntaje Final: {final_score}", style="bold green"))
     
