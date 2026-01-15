@@ -15,6 +15,9 @@ env/
 ejercicio_2/data/*
 data/trivia_game.db  
 
+data/*.db
+!data/.gitkeep
+
 # Logs
 *.log
 
