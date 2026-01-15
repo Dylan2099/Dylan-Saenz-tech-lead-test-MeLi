@@ -1,7 +1,7 @@
 import os
 from langchain_google_vertexai import ChatVertexAI
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver # IMPORTANTE: Para recordar el estado
+from langgraph.checkpoint.memory import MemorySaver 
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
@@ -13,7 +13,7 @@ from src.models import engine, QuestionLog, update_session_score
 # --- 1. Configuración del LLM ---
 llm = ChatVertexAI(
     model_name=settings.MODEL_NAME,
-    temperature=0.7,
+    temperature=0.8, # Subimos un poco la temperatura para más variedad
     project=settings.PROJECT_ID,
     location=settings.REGION
 )
@@ -31,15 +31,46 @@ class EvaluationSchema(BaseModel):
 # --- 3. Definición de Nodos ---
 
 def generate_question_node(state: TriviaState):
-    """Agente 1: Genera una pregunta."""
-    # PROMPT MEJORADO: Añadimos la instrucción de evitar ambigüedad
-    prompt = f"""Eres un experto en trivias sobre: {settings.TRIVIA_TOPIC}.
-    Genera una pregunta desafiante de nivel intermedio/alto.
+    """Agente 1: Genera una pregunta con personalidad y MEMORIA."""
+    topic = state.get("topic", "General")
     
-    REGLA IMPORTANTE: Evita preguntas ambiguas. Si preguntas por "el primero", "el más fuerte", etc., 
-    especifica el contexto (ej: "por fecha de publicación" vs "en la cronología del universo").
+    # --- FIX REPETICIÓN: Extraer preguntas anteriores del historial ---
+    # Buscamos en los mensajes previos textos que empiecen con "🤖 Host:"
+    previous_questions = [
+        msg.replace("🤖 Host: ", "") 
+        for msg in state.get("messages", []) 
+        if isinstance(msg, str) and "Host:" in msg
+    ]
+    history_context = f"PREGUNTAS YA HECHAS (¡PROHIBIDO REPETIRLAS!): {previous_questions}" if previous_questions else ""
+    # ---------------------------------------------------------------
+
+    meli_context = ""
+    if topic == "MeLi Expert":
+        meli_context = """
+        CONTEXTO MERCADO LIBRE:
+        - Fundador: Marcos Galperin (1999, garaje en Saavedra).
+        - Ecosistema: Mercado Pago, Mercado Envíos (Full), Mercado Shops, Mercado Crédito.
+        - Hitos: Cotiza en NASDAQ (MELI), es la empresa más valiosa de Latam.
+        - Cultura: "Beta continuo", "Emprender tomando riesgos", logo del codo a codo en pandemia.
+        - Colores: Amarillo (#FFE600) y Azul oscuro.
+        """
+
+    prompt = f"""
+    Eres el anfitrión carismático de un show de trivia llamado "MeLi Arcade".
+    Tu tono es energético, breve y divertido.
     
-    Devuelve la pregunta y la respuesta correcta exacta por separado.
+    El tema elegido es: {topic}.
+    {meli_context}
+    
+    {history_context}
+
+    INSTRUCCIONES:
+    1. Genera una pregunta NUEVA y diferente a las anteriores.
+    2. Si es videojuegos, NO preguntes siempre de Mario. Varía (Zelda, Pacman, Doom, Minecraft, etc).
+    3. Curiosidades y Fun Facts. No datos académicos.
+    4. Respuesta corta (3-4 palabras).
+
+    Genera la pregunta y la respuesta correcta.
     """
     
     structured_llm = llm.with_structured_output(QuestionSchema)
@@ -48,16 +79,15 @@ def generate_question_node(state: TriviaState):
     return {
         "current_question": response.question,
         "current_answer": response.answer,
-        "messages": [f"🤖 Pregunta: {response.question}"]
+        "messages": [f"🤖 Host: {response.question}"]
     }
 
-    
 def evaluate_answer_node(state: TriviaState):
     """Agente 2: Evalúa la respuesta."""
     user_input = state["user_answer"]
     correct_ans = state["current_answer"]
     question = state["current_question"]
-    session_id = state["session_id"] # Obtenemos el ID de la sesión actual
+    session_id = state["session_id"] 
     
     prompt = f"""
     Pregunta: {question}
@@ -69,10 +99,9 @@ def evaluate_answer_node(state: TriviaState):
     structured_llm = llm.with_structured_output(EvaluationSchema)
     eval_result = structured_llm.invoke(prompt)
     
-    # 1. Guardar el Log detallado
     with Session(engine) as session:
         log = QuestionLog(
-            session_id=session_id, # Vinculamos a la sesión
+            session_id=session_id,
             question_text=question,
             correct_answer=correct_ans,
             user_answer=user_input,
@@ -83,7 +112,6 @@ def evaluate_answer_node(state: TriviaState):
         session.add(log)
         session.commit()
     
-    # 2. Actualizar el Score Global de la Sesión
     update_session_score(session_id, eval_result.points)
     
     next_count = state["question_count"] + 1
@@ -96,7 +124,7 @@ def evaluate_answer_node(state: TriviaState):
         "game_over": is_game_over
     }
 
-# --- 4. Lógica Condicional (DEFINIDA ANTES DEL GRAFO) ---
+# --- 4. Lógica Condicional ---
 def check_game_over(state: TriviaState):
     if state["game_over"]:
         return "end_game"
@@ -104,16 +132,10 @@ def check_game_over(state: TriviaState):
 
 # --- 5. Construcción del Grafo ---
 workflow = StateGraph(TriviaState)
-
 workflow.add_node("quiz_master", generate_question_node)
 workflow.add_node("judge", evaluate_answer_node)
-
 workflow.set_entry_point("quiz_master")
-
-# Flujo: QuizMaster -> Judge (Pero pararemos antes de Judge con interrupt)
 workflow.add_edge("quiz_master", "judge")
-
-# Flujo Condicional después del Juez
 workflow.add_conditional_edges(
     "judge",
     check_game_over,
@@ -123,10 +145,9 @@ workflow.add_conditional_edges(
     }
 )
 
-# --- 6. Compilación con Memoria ---
-memory = MemorySaver() # Esto permite pausar y reanudar
-
+# --- 6. Compilación ---
+memory = MemorySaver() 
 app = workflow.compile(
     checkpointer=memory,
-    interrupt_before=["judge"] # Nos detenemos justo antes de evaluar para pedir input
+    interrupt_before=["judge"] 
 )

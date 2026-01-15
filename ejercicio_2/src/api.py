@@ -16,6 +16,7 @@ app_api = FastAPI(title="Trivia Tech Lead API", version="1.0")
 # --- Modelos de Datos para la API (Request/Response) ---
 class StartGameRequest(BaseModel):
     player_name: str
+    topic: str
 
 class ChatRequest(BaseModel):
     session_id: int
@@ -49,6 +50,7 @@ def start_game(request: StartGameRequest):
     initial_state: TriviaState = { 
         "messages": [], "question_count": 0, "score": 0, "game_over": False,
         "session_id": session_id, "player_name": request.player_name,
+        "topic": request.topic,
         "current_question": "", "current_answer": "", "user_answer": "", "last_feedback": ""
     }
     

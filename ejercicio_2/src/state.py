@@ -16,7 +16,8 @@ class TriviaState(TypedDict):
     #datos de la sesión
     session_id: int 
     player_name: str
-    
+    topic: str  
+
     # Datos de la ronda actual
     current_question: str
     current_answer: str       # Esto NO se muestra al usuario
