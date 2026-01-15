@@ -8,8 +8,8 @@
 
 ## 📐 Diagrama de Arquitectura
 
-![Architecture Diagram](./assets/diagrama_rag.png)
-*(Si la imagen no carga, ver [versión SVG de alta calidad](./assets/diagrama_rag.svg))*
+![Architecture Diagram](./assets/arquitectura_rag.png)
+*(Si la imagen no carga, ver [versión SVG de alta calidad](./assets/arquitectura_rag.svg))*
 
 ---
 
