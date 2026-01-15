@@ -118,5 +118,5 @@ ejercicio_2/
 
 ---
 **Tech Stack:** Python 3.11, LangGraph, Vertex AI, FastAPI, Streamlit, Docker.
-```
+
 
