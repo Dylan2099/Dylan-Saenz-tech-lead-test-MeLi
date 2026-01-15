@@ -26,6 +26,9 @@ Diseño de sistema para preguntas y respuestas sobre documentación técnica mas
 
 ### 2. [Ejercicio 2: Agente de Trivia "MeLi Arcade"](./ejercicio_2/)
 Sistema Multi-Agente completo con Backend (FastAPI) y Frontend (Streamlit).
+<br>
+<img src="./ejercicio_2/assets/app_preview.png" width="600px" alt="Preview MeLi Arcade">
+
 - **Core:** **LangGraph** (Stateful Multi-Agent System).
 - **Modelo:** Google **Gemini 1.5 Flash** (via Vertex AI).
 - **Interfaz:** App interactiva con gamificación, animaciones y ranking en tiempo real.
