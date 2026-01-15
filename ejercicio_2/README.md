@@ -10,7 +10,7 @@ El sistema consta de dos servicios contenerizados que se comunican vía HTTP:
 
 1.  **Backend (Brain):** API REST construida con **FastAPI**.
     *   Orquestación: **LangGraph** (Stateful Multi-Agent).
-    *   IA: **Vertex AI (Gemini 1.5 Flash)**.
+    *   IA: **Vertex AI (Gemini 2.5 Flash)**.
     *   Persistencia: **SQLModel** (SQLite) para sesiones y ranking.
 2.  **Frontend (Face):** Interfaz interactiva construida con **Streamlit**.
     *   Gamificación: Animaciones Lottie y sistema de feedback visual.
