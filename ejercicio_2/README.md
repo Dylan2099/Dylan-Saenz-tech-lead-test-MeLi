@@ -37,7 +37,7 @@ Antes de ejecutar, es necesario configurar las credenciales y variables de entor
     REGION=us-central1
     
     # Modelo a utilizar
-    MODEL_NAME=gemini-1.5-flash-001
+    MODEL_NAME=gemini-2.5-flash
     
     # Configuración del Juego
     MAX_QUESTIONS=3
