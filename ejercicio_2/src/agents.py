@@ -32,8 +32,15 @@ class EvaluationSchema(BaseModel):
 
 def generate_question_node(state: TriviaState):
     """Agente 1: Genera una pregunta."""
+    # PROMPT MEJORADO: Añadimos la instrucción de evitar ambigüedad
     prompt = f"""Eres un experto en trivias sobre: {settings.TRIVIA_TOPIC}.
-    Genera una pregunta desafiante. Devuelve pregunta y respuesta por separado."""
+    Genera una pregunta desafiante de nivel intermedio/alto.
+    
+    REGLA IMPORTANTE: Evita preguntas ambiguas. Si preguntas por "el primero", "el más fuerte", etc., 
+    especifica el contexto (ej: "por fecha de publicación" vs "en la cronología del universo").
+    
+    Devuelve la pregunta y la respuesta correcta exacta por separado.
+    """
     
     structured_llm = llm.with_structured_output(QuestionSchema)
     response = structured_llm.invoke(prompt)
@@ -44,6 +51,7 @@ def generate_question_node(state: TriviaState):
         "messages": [f"🤖 Pregunta: {response.question}"]
     }
 
+    
 def evaluate_answer_node(state: TriviaState):
     """Agente 2: Evalúa la respuesta."""
     user_input = state["user_answer"]
