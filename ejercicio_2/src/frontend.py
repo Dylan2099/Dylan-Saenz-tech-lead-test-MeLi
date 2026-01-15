@@ -1,11 +1,12 @@
 import streamlit as st
+import os
 import requests
 import pandas as pd
 import time
 from streamlit_lottie import st_lottie
 
 # --- CONFIGURACIÓN ---
-API_URL = "http://127.0.0.1:8000"
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000") 
 st.set_page_config(page_title="MeLi Arcade", page_icon="🎮", layout="centered")
 
 # --- ASSETS (Animaciones Lottie) ---
