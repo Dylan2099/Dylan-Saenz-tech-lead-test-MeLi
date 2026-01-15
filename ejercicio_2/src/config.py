@@ -1,29 +1,26 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 
+# Definimos la ruta base del proyecto (ejercicio_2)
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
+
+# Aseguramos que la carpeta data exista
+DATA_DIR.mkdir(exist_ok=True)
+
 class Settings(BaseSettings):
-    """
-    Configuración centralizada del proyecto.
-    Lee automáticamente las variables desde el archivo .env
-    """
-    # Configuración de Google Cloud
     PROJECT_ID: str
     REGION: str = "us-central1"
-    
-    # Configuración del Modelo
-    # Usamos Flash porque es rápido y barato para tareas simples como trivia
     MODEL_NAME: str = "gemini-1.5-flash-001" 
-    
-    # Configuración del Juego
-    MAX_QUESTIONS: int = 5
+    MAX_QUESTIONS: int = 3
     TRIVIA_TOPIC: str = "Google Cloud Platform"
     
-    # Base de Datos
-    DB_NAME: str = "trivia_game.db"
+    # Ruta absoluta a la DB dentro de la carpeta data
+    DB_NAME: str = str(DATA_DIR / "trivia_game.db")
 
     class Config:
         env_file = ".env"
-        extra = "ignore" # Ignora variables extra en el .env si las hay
+        extra = "ignore"
 
-# Instanciamos la configuración para importarla desde otros archivos
 settings = Settings()

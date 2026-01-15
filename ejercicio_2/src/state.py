@@ -12,6 +12,10 @@ class TriviaState(TypedDict):
     # Control del flujo del juego
     question_count: int
     game_over: bool
+
+    #datos de la sesión
+    session_id: int 
+    player_name: str
     
     # Datos de la ronda actual
     current_question: str

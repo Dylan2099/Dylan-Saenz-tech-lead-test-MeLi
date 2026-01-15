@@ -1,77 +1,95 @@
 import sys
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
 
-# Importaciones internas
-from .config import settings
-from .models import init_db
-from .agents import app
+from src.config import settings
+from src.models import init_db, create_session, get_leaderboard
+from src.agents import app 
+from src.state import TriviaState 
 
-# Inicializamos la consola bonita ( con Rich)
 console = Console()
 
 def run_game():
-    """Bucle principal de ejecución del juego."""
-    
-    # 1. Inicializar BD
     init_db()
-    
     console.print(Panel(f"🚀 Iniciando Trivia Tech Lead\nTema: {settings.TRIVIA_TOPIC}", style="bold blue"))
     
-    # 2. Estado Inicial
-    state = {
-        "messages": [],
-        "question_count": 0,
-        "score": 0,
-        "game_over": False,
-        "current_question": "",
-        "current_answer": "",
-        "user_answer": "",
-        "last_feedback": ""
+    # --- PASO 0: Registro de Jugador (Requisito Multi-participante) ---
+    player_name = console.input("\n[bold green]Ingresa tu nombre para el Ranking > [/bold green]")
+    session_id = create_session(player_name)
+    
+    # Configuración del Hilo con ID único basado en la sesión DB
+    thread_config = {"configurable": {"thread_id": str(session_id)}}
+    
+    # Estado inicial con los datos del jugador
+    initial_state: TriviaState = { 
+        "messages": [], "question_count": 0, "score": 0, "game_over": False,
+        "session_id": session_id, "player_name": player_name,
+        "current_question": "", "current_answer": "", "user_answer": "", "last_feedback": ""
     }
+
+    # Primer arranque
+    app.invoke(initial_state, config=thread_config)
     
-    # 3. Game Loop
-    # El grafo empieza en 'quiz_master', genera pregunta y para.
-    # se lee el input, actualizamos el estado y reanudamos en 'judge'.
-    
-    while not state["game_over"]:
-        # --- Fase 1: Generar Pregunta ---
-        # Ejecutamos el grafo hasta que se detenga (END después de quiz_master)
-        for event in app.stream(state):
-            #no se muestran logs pero podriamos añadir
-            pass
-            
-        # Obtenemos el estado actualizado tras la ejecución
-        # Para simplificar este script, llamamos a los nodos manualmente
-        # Si usáramos app.invoke() completo, necesitaríamos `interrupt_before`.
+    # Bucle de interacción
+    while True:
+        current_state_snapshot = app.get_state(thread_config)
+        state_values = current_state_snapshot.values
         
-        # A) Invocamos solo el Generador
-        res_gen = app.nodes["quiz_master"](state)
-        state.update(res_gen) # Actualizamos libreta
-        
+        if not state_values or state_values.get("game_over"):
+            break
+
         # Mostrar Pregunta
-        console.print(f"\n[bold yellow]Pregunta {state['question_count'] + 1}/{settings.MAX_QUESTIONS}:[/bold yellow]")
-        console.print(f"{state['current_question']}")
+        q = state_values.get("current_question")
+        i = state_values.get("question_count", 0) + 1
+        console.print(f"\n[bold yellow]Pregunta {i}/{settings.MAX_QUESTIONS}:[/bold yellow]")
+        console.print(f"{q}")
         
-        # --- Fase 2: Input del Usuario ---
+        # Pedir Input
         user_input = console.input("\n[bold cyan]Tu respuesta > [/bold cyan]")
-        state["user_answer"] = user_input
         
-        # --- Fase 3: Evaluar ---
-        res_eval = app.nodes["judge"](state)
-        state.update(res_eval)
+        # Reanudar
+        app.update_state(thread_config, {"user_answer": user_input})
+        result = app.invoke(None, config=thread_config)
         
-        # Mostrar Feedback
-        color = "green" if "True" in str(res_eval.get("score", 0) > state["score"] - 10) else "blue" # Simple visual
-        console.print(f"\n[bold {color}]Feedback:[/bold {color}] {state['last_feedback']}")
+        # Feedback
+        feedback = result.get("last_feedback")
+        if feedback:
+            color = "green" if "Correct" in str(feedback) else "blue"
+            console.print(f"\n[bold {color}]Feedback:[/bold {color}] {feedback}")
         
-    # Fin del juego
-    console.print(Panel(f"🏆 Juego Terminado\nPuntaje Final: {state['score']}", style="bold green"))
+        if result.get("game_over"):
+            break
+
+    # --- REPORTE FINAL Y RANKING (Requisito 6) ---
+    final_score = app.get_state(thread_config).values.get('score', 0)
+    console.print(Panel(f"🏆 Juego Terminado, {player_name}!\nPuntaje Final: {final_score}", style="bold green"))
+    
+    console.print("\n[bold magenta]📊 LEADERBOARD - TOP JUGADORES[/bold magenta]")
+    
+    # Crear tabla bonita para el ranking
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Rank", style="dim")
+    table.add_column("Jugador")
+    table.add_column("Puntaje", justify="right")
+    table.add_column("Fecha", justify="right")
+
+    top_players = get_leaderboard()
+    for idx, player in enumerate(top_players, 1):
+        is_current = " (Tú)" if player.id == session_id else ""
+        style = "bold green" if player.id == session_id else "white"
+        table.add_row(
+            str(idx), 
+            f"{player.player_name}{is_current}", 
+            str(player.total_score),
+            player.start_time.strftime("%Y-%m-%d %H:%M"),
+            style=style
+        )
+    
+    console.print(table)
 
 if __name__ == "__main__":
     try:
         run_game()
-    except KeyboardInterrupt:
-        console.print("\n👋 Juego cancelado.")
     except Exception as e:
         console.print(f"\n[bold red]Error crítico:[/bold red] {e}")

@@ -1,23 +1,24 @@
+import os
 from langchain_google_vertexai import ChatVertexAI
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver # IMPORTANTE: Para recordar el estado
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 # Importaciones internas
-from ejercicio_2.src.config import settings
-from ejercicio_2.src.state import TriviaState
-from ejercicio_2.src.models import engine, QuestionLog
+from src.config import settings
+from src.state import TriviaState
+from src.models import engine, QuestionLog, update_session_score
 
 # --- 1. Configuración del LLM ---
 llm = ChatVertexAI(
     model_name=settings.MODEL_NAME,
-    temperature=0.7, # Creatividad media
+    temperature=0.7,
     project=settings.PROJECT_ID,
     location=settings.REGION
 )
 
-# --- 2. Estructuras de Salida (JSON Schema) ---
-# Esto garantiza que la IA no "alucine" formatos raros
+# --- 2. Estructuras de Salida ---
 class QuestionSchema(BaseModel):
     question: str = Field(description="La pregunta de trivia.")
     answer: str = Field(description="La respuesta correcta breve y concisa.")
@@ -27,22 +28,16 @@ class EvaluationSchema(BaseModel):
     feedback: str = Field(description="Explicación educativa sin revelar el score numérico.")
     points: int = Field(description="10 puntos si es correcta, 0 si no.")
 
-# --- 3. Definición de Nodos (Funciones) ---
+# --- 3. Definición de Nodos ---
 
 def generate_question_node(state: TriviaState):
-    """Agente 1: Genera una pregunta basada en el tema."""
-    
-    # Instrucciones para el LLM
+    """Agente 1: Genera una pregunta."""
     prompt = f"""Eres un experto en trivias sobre: {settings.TRIVIA_TOPIC}.
-    Genera una pregunta desafiante pero justa.
-    Devuelve la pregunta y la respuesta correcta por separado.
-    """
+    Genera una pregunta desafiante. Devuelve pregunta y respuesta por separado."""
     
-    # Invocamos al LLM forzando la estructura JSON
     structured_llm = llm.with_structured_output(QuestionSchema)
     response = structured_llm.invoke(prompt)
     
-    # Actualizamos el estado 
     return {
         "current_question": response.question,
         "current_answer": response.answer,
@@ -50,30 +45,26 @@ def generate_question_node(state: TriviaState):
     }
 
 def evaluate_answer_node(state: TriviaState):
-    """Agente 2: Compara la respuesta y guarda en BD."""
-    
+    """Agente 2: Evalúa la respuesta."""
     user_input = state["user_answer"]
     correct_ans = state["current_answer"]
     question = state["current_question"]
+    session_id = state["session_id"] # Obtenemos el ID de la sesión actual
     
-    # Instrucciones para el Juez
     prompt = f"""
-    Pregunta original: {question}
-    Respuesta correcta oficial: {correct_ans}
-    Respuesta del usuario: {user_input}
-    
-    Tarea:
-    1. Evalúa si el usuario acertó (sé flexible con typos).
-    2. Provee feedback educativo explicando por qué es (o no) correcta.
-    3. NO menciones el puntaje numérico en el feedback.
+    Pregunta: {question}
+    Correcta: {correct_ans}
+    Usuario: {user_input}
+    Evalúa si es correcta y da feedback educativo sin decir puntos.
     """
     
     structured_llm = llm.with_structured_output(EvaluationSchema)
     eval_result = structured_llm.invoke(prompt)
     
-    # --- Persistencia (Guardar en DB) ---
+    # 1. Guardar el Log detallado
     with Session(engine) as session:
         log = QuestionLog(
+            session_id=session_id, # Vinculamos a la sesión
             question_text=question,
             correct_answer=correct_ans,
             user_answer=user_input,
@@ -84,7 +75,9 @@ def evaluate_answer_node(state: TriviaState):
         session.add(log)
         session.commit()
     
-    # Calculamos si el juego debe terminar
+    # 2. Actualizar el Score Global de la Sesión
+    update_session_score(session_id, eval_result.points)
+    
     next_count = state["question_count"] + 1
     is_game_over = next_count >= settings.MAX_QUESTIONS
     
@@ -92,35 +85,40 @@ def evaluate_answer_node(state: TriviaState):
         "score": state["score"] + eval_result.points,
         "last_feedback": eval_result.feedback,
         "question_count": next_count,
-        "game_over": is_game_over,
-        "messages": [f"👨‍⚖️ Juez: {eval_result.feedback}"]
+        "game_over": is_game_over
     }
 
-# --- 4. Construcción del Grafo (Workflow) ---
+# --- 4. Lógica Condicional (DEFINIDA ANTES DEL GRAFO) ---
+def check_game_over(state: TriviaState):
+    if state["game_over"]:
+        return "end_game"
+    return "continue"
 
+# --- 5. Construcción del Grafo ---
 workflow = StateGraph(TriviaState)
 
-# Añadimos los nodos
 workflow.add_node("quiz_master", generate_question_node)
 workflow.add_node("judge", evaluate_answer_node)
 
-# Definimos el punto de entrada
 workflow.set_entry_point("quiz_master")
 
-# Definimos las conexiones
-# Después de preguntar, vamos al FIN del turno (para esperar input del usuario)
-workflow.add_edge("quiz_master", END) 
+# Flujo: QuizMaster -> Judge (Pero pararemos antes de Judge con interrupt)
+workflow.add_edge("quiz_master", "judge")
 
-# Después de evaluar, decidimos si seguir o parar
-def check_game_over(state: TriviaState):
-    if state["game_over"]:
-        return END
-    return "quiz_master" # Bucle: Volver a preguntar
-
+# Flujo Condicional después del Juez
 workflow.add_conditional_edges(
     "judge",
-    check_game_over
+    check_game_over,
+    {
+        "continue": "quiz_master",
+        "end_game": END
+    }
 )
 
-# Compilamos la aplicación
-app = workflow.compile()
+# --- 6. Compilación con Memoria ---
+memory = MemorySaver() # Esto permite pausar y reanudar
+
+app = workflow.compile(
+    checkpointer=memory,
+    interrupt_before=["judge"] # Nos detenemos justo antes de evaluar para pedir input
+)
