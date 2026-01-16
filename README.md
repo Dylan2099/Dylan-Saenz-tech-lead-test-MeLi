@@ -30,7 +30,7 @@ Sistema Multi-Agente completo con Backend (FastAPI) y Frontend (Streamlit).
 <img src="./ejercicio_2/assets/app_preview.png" width="600px" alt="Preview MeLi Arcade">
 
 - **Core:** **LangGraph** (Stateful Multi-Agent System).
-- **Modelo:** Google **Gemini 1.5 Flash** (via Vertex AI).
+- **Modelo:** Google **Gemini 2.5 Flash** (via Vertex AI).
 - **Interfaz:** App interactiva con gamificación, animaciones y ranking en tiempo real.
 - **Datos:** Persistencia transaccional con **SQLModel** (SQLite/PostgreSQL ready).
 

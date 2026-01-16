@@ -12,7 +12,7 @@ El sistema consta de dos servicios contenerizados que se comunican vía HTTP:
 
 1.  **Backend (Brain):** API REST construida con **FastAPI**.
     *   Orquestación: **LangGraph** (Stateful Multi-Agent).
-    *   IA: **Vertex AI (Gemini 1.5 Flash)**.
+    *   IA: **Vertex AI (Gemini 2.5 Flash)**.
     *   Persistencia: **SQLModel** (SQLite) para sesiones y ranking.
 2.  **Frontend (Face):** Interfaz interactiva construida con **Streamlit**.
     *   Gamificación: Animaciones Lottie y sistema de feedback visual.
@@ -39,7 +39,7 @@ Antes de ejecutar, es necesario configurar las credenciales y variables de entor
     REGION=us-central1
     
     # Modelo a utilizar
-    MODEL_NAME=gemini-1.5-flash-001
+    MODEL_NAME=gemini-2.5-flash
     
     # Configuración del Juego
     MAX_QUESTIONS=3
