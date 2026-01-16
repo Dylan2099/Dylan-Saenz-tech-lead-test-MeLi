@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     REGION: str = "us-central1"
     MODEL_NAME: str = "gemini-2.5-flash" #modelo rapido y barato ideal para juego
     MAX_QUESTIONS: int = 3
-    TRIVIA_TOPIC: str = "Google Cloud Platform"
+    TRIVIA_TOPIC: str = "" # Tema por defecto vacio por que se selecciona en frontend
     
     # Ruta absoluta a la DB dentro de la carpeta data
     DB_NAME: str = str(DATA_DIR / "trivia_game.db")

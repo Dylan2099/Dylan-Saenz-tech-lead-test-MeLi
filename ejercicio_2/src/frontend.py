@@ -224,10 +224,11 @@ else:
     # Barra de Progreso Superior
     score_col, status_col = st.columns([1, 3])
     with score_col:
-        st.metric("Puntaje Actual", f"{st.session_state.score} pts")
+        # En lugar de "Puntaje", mostramos la "Ronda"
+        st.metric("Ronda", f"#{st.session_state.q_count}")
     with status_col:
         # Corrección Barra: Usamos el contador de preguntas (q_count) en vez del score
-        # Suponemos 3 preguntas (ajusta el 3.0 si cambiaste MAX_QUESTIONS en el env)
+        # Suponemos 3 preguntas (ajusta el 3.0 si cambiaste MAX_QUESTIONS en el env) 
         max_q = 3.0
         progreso = min(st.session_state.q_count / max_q, 1.0)
         st.progress(progreso, text=f"Nivel {st.session_state.q_count} de {int(max_q)}")
