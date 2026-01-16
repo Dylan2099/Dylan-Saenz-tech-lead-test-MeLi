@@ -1,6 +1,6 @@
 # 🎮 MeLi Arcade: AI-Powered Trivia Agent
 
-![App Preview](./assets/app_preview.png)
+![App Preview](./assets/app_preview_v2.png)
 
 > **🔴 Live Demo:** [Haz clic aquí para jugar](https://meli-frontend-856233821367.us-central1.run.app)
 
