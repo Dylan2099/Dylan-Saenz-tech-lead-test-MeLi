@@ -6,6 +6,8 @@
 
 Este módulo implementa un sistema interactivo de trivia utilizando **Agentes de IA Generativa** orquestados con grafos de estado. La solución está diseñada bajo una arquitectura de microservicios desacoplada, separando la lógica de negocio (Backend) de la interfaz de usuario (Frontend).
 
+Para esta prueba de concepto (PoC) utilicé SQLite por rapidez. En un entorno productivo real, conectaría este servicio a una base de datos gestionada como Cloud SQL (PostgreSQL) para garantizar la persistencia, ya que el sistema de archivos de Cloud Run es volátil.
+
 ## 🏗 Arquitectura del Sistema
 
 El sistema consta de dos servicios contenerizados que se comunican vía HTTP:
